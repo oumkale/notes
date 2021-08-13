@@ -1,0 +1,75 @@
+apiVersion: litmuschaos.io/v1alpha1
+
+description:
+  message: |
+    Injects cpu consumption on pods belonging to an app deployment
+kind: ChaosExperiment
+
+metadata:
+  name: pod-cpu-hog-exec
+  labels:
+    name: pod-cpu-hog-exec
+    app.kubernetes.io/part-of: litmus
+    app.kubernetes.io/component: chaosexperiment
+    app.kubernetes.io/version: 1.13.8
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups:
+          - ""
+          - batch
+          - apps
+          - apps.openshift.io
+          - argoproj.io
+          - litmuschaos.io
+        resources:
+          - jobs
+          - pods
+          - pods/log
+          - events
+          - replicationcontrollers
+          - deployments
+          - statefulsets
+          - daemonsets
+          - replicasets
+          - deploymentconfigs
+          - rollouts
+          - pods/exec
+          - chaosengines
+          - chaosexperiments
+          - chaosresults
+        verbs:
+          - create
+          - list
+          - get
+          - patch
+          - update
+          - delete
+    image: kaleoum/py-runner:ci2
+    imagePullPolicy: Always
+    args:
+      - -c
+      - python3 -u experiment -name=chaos
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: "60"
+      - name: CPU_CORES
+        value: "1"
+      - name: PODS_AFFECTED_PERC
+        value: ""
+      - name: RAMP_TIME
+        value: ""
+      - name: LIB
+        value: litmus
+      - name: TARGET_PODS
+        value: ""
+      - name: SEQUENCE
+        value: parallel
+    labels:
+      name: pod-cpu-hog-exec
+      app.kubernetes.io/part-of: litmus
+      app.kubernetes.io/component: experiment-job
+      app.kubernetes.io/version: 1.13.8
