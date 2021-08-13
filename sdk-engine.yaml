@@ -1,0 +1,33 @@
+apiVersion: litmuschaos.io/v1alpha1
+
+kind: ChaosEngine
+
+metadata:
+  namespace: "{{workflow.parameters.adminModeNamespace}}"
+  generateName: pod-cpu-hog-exec
+  labels:
+    instance_id: b94f072a-9706-4e8d-8ffe-f690462dc2ea
+    workflow_name: custom-chaos-workflow-1628842040
+spec:
+  engineState: active
+  appinfo:
+    appns: litmus
+    applabel: app=nginx
+    appkind: deployment
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-cpu-hog-exec
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: CPU_CORES
+              value: "1"
+            - name: PODS_AFFECTED_PERC
+              value: "100"
+            - name: CHAOS_INJECT_COMMAND
+              value: md5sum /dev/zero &
+            - name: CHAOS_KILL_COMMAND
+              value: kill $(find /proc -name exe -lname '*/md5sum' 2>&1 | grep -v 'Permission
+                denied' | awk -F/ '{print $(NF-1)}') &
