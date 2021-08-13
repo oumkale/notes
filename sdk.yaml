@@ -1,0 +1,184 @@
+kind: Workflow
+apiVersion: argoproj.io/v1alpha1
+metadata:
+  name: custom-chaos-workflow-1628842040
+  namespace: litmus
+  creationTimestamp: null
+  labels:
+    cluster_id: 044d9b6d-a44f-4f17-97d4-a43f18a96e52
+    subject: custom-chaos-workflow_litmus
+    workflow_id: c7d422dc-d495-4200-9e10-119c7b5ffcbd
+    workflows.argoproj.io/controller-instanceid: 044d9b6d-a44f-4f17-97d4-a43f18a96e52
+spec:
+  templates:
+    - name: custom-chaos
+      arguments: {}
+      inputs: {}
+      outputs: {}
+      metadata: {}
+      steps:
+        - - name: install-chaos-experiments
+            template: install-chaos-experiments
+            arguments: {}
+        - - name: pod-cpu-hog-exec
+            template: pod-cpu-hog-exec
+            arguments: {}
+    - name: install-chaos-experiments
+      arguments: {}
+      inputs:
+        artifacts:
+          - name: pod-cpu-hog-exec
+            path: /tmp/pod-cpu-hog-exec.yaml
+            raw:
+              data: >
+                apiVersion: litmuschaos.io/v1alpha1
+
+                description:
+                  message: |
+                    Injects cpu consumption on pods belonging to an app deployment
+                kind: ChaosExperiment
+
+                metadata:
+                  name: pod-cpu-hog-exec
+                  labels:
+                    name: pod-cpu-hog-exec
+                    app.kubernetes.io/part-of: litmus
+                    app.kubernetes.io/component: chaosexperiment
+                    app.kubernetes.io/version: 1.13.8
+                spec:
+                  definition:
+                    scope: Namespaced
+                    permissions:
+                      - apiGroups:
+                          - ""
+                          - batch
+                          - apps
+                          - apps.openshift.io
+                          - argoproj.io
+                          - litmuschaos.io
+                        resources:
+                          - jobs
+                          - pods
+                          - pods/log
+                          - events
+                          - replicationcontrollers
+                          - deployments
+                          - statefulsets
+                          - daemonsets
+                          - replicasets
+                          - deploymentconfigs
+                          - rollouts
+                          - pods/exec
+                          - chaosengines
+                          - chaosexperiments
+                          - chaosresults
+                        verbs:
+                          - create
+                          - list
+                          - get
+                          - patch
+                          - update
+                          - delete
+                    image: kaleoum/py-runner:ci2
+                    imagePullPolicy: Always
+                    args:
+                      - -c
+                      - python3 -u experiment -name=chaos
+                    command:
+                      - /bin/bash
+                    env:
+                      - name: TOTAL_CHAOS_DURATION
+                        value: "60"
+                      - name: CPU_CORES
+                        value: "1"
+                      - name: PODS_AFFECTED_PERC
+                        value: ""
+                      - name: RAMP_TIME
+                        value: ""
+                      - name: LIB
+                        value: litmus
+                      - name: TARGET_PODS
+                        value: ""
+                      - name: SEQUENCE
+                        value: parallel
+                    labels:
+                      name: pod-cpu-hog-exec
+                      app.kubernetes.io/part-of: litmus
+                      app.kubernetes.io/component: experiment-job
+                      app.kubernetes.io/version: 1.13.8
+      outputs: {}
+      metadata: {}
+      container:
+        name: ""
+        image: litmuschaos/k8s:latest
+        command:
+          - sh
+          - -c
+        args:
+          - kubectl apply -f /tmp/pod-cpu-hog-exec.yaml -n
+            {{workflow.parameters.adminModeNamespace}} |  sleep 30
+        resources: {}
+    - name: pod-cpu-hog-exec
+      arguments: {}
+      inputs:
+        artifacts:
+          - name: pod-cpu-hog-exec
+            path: /tmp/chaosengine-pod-cpu-hog-exec.yaml
+            raw:
+              data: >
+                apiVersion: litmuschaos.io/v1alpha1
+
+                kind: ChaosEngine
+
+                metadata:
+                  namespace: "{{workflow.parameters.adminModeNamespace}}"
+                  generateName: pod-cpu-hog-exec
+                  labels:
+                    instance_id: b94f072a-9706-4e8d-8ffe-f690462dc2ea
+                    workflow_name: custom-chaos-workflow-1628842040
+                spec:
+                  engineState: active
+                  appinfo:
+                    appns: litmus
+                    applabel: app=nginx
+                    appkind: deployment
+                  chaosServiceAccount: litmus-admin
+                  experiments:
+                    - name: pod-cpu-hog-exec
+                      spec:
+                        components:
+                          env:
+                            - name: TOTAL_CHAOS_DURATION
+                              value: "60"
+                            - name: CPU_CORES
+                              value: "1"
+                            - name: PODS_AFFECTED_PERC
+                              value: "100"
+                            - name: CHAOS_INJECT_COMMAND
+                              value: md5sum /dev/zero &
+                            - name: CHAOS_KILL_COMMAND
+                              value: kill $(find /proc -name exe -lname '*/md5sum' 2>&1 | grep -v 'Permission
+                                denied' | awk -F/ '{print $(NF-1)}') &
+      outputs: {}
+      metadata:
+        labels:
+          weight: "10"
+      container:
+        name: ""
+        image: litmuschaos/litmus-checker:latest
+        args:
+          - -file=/tmp/chaosengine-pod-cpu-hog-exec.yaml
+          - -saveName=/tmp/engine-name
+        resources: {}
+  entrypoint: custom-chaos
+  arguments:
+    parameters:
+      - name: adminModeNamespace
+        value: litmus
+  serviceAccountName: argo-chaos
+  securityContext:
+    runAsUser: 1000
+    runAsNonRoot: true
+status:
+  ? startedAt
+  ? finishedAt
