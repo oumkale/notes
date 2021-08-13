@@ -93,7 +93,7 @@ metadata:
     operation: Update
     time: "2021-06-22T01:36:11Z"
   name: nginx
-  namespace: litmus
+  namespace: default
   resourceVersion: "228216"
   selfLink: /apis/apps/v1/namespaces/litmus/deployments/nginx
   uid: c0bd2359-176d-47d8-9736-df70a407e1de
