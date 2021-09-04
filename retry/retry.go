@@ -102,4 +102,3 @@ func (model Model) TryWithTimeout(action Action) error {
 
 	return err
 }
-
